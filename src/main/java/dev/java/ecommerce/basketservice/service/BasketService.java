@@ -2,12 +2,12 @@ package dev.java.ecommerce.basketservice.service;
 
 import dev.java.ecommerce.basketservice.client.response.PlatziProductResponse;
 import dev.java.ecommerce.basketservice.controller.request.BasketRequest;
+import dev.java.ecommerce.basketservice.controller.request.PaymentRequest;
 import dev.java.ecommerce.basketservice.entity.Basket;
 import dev.java.ecommerce.basketservice.entity.Product;
 import dev.java.ecommerce.basketservice.entity.Status;
 import dev.java.ecommerce.basketservice.repository.BasketRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -70,6 +70,13 @@ public class BasketService {
         savedBasket.setProducts(products);
 
         savedBasket.calculateTotalPrice();
+        return basketRepository.save(savedBasket);
+    }
+
+    public  Basket payBasket(String basketId, PaymentRequest request){
+        Basket savedBasket = getBasketById(basketId);
+        savedBasket.setPaymentMethod(request.getPaymentMethod());
+        savedBasket.setStatus(Status.SOLD);
         return basketRepository.save(savedBasket);
     }
 
