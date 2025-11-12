@@ -1,4 +1,5 @@
 package dev.java.ecommerce.basketservice.controller.request;
 
-public class ProductRequest {
+
+public record ProductRequest (Long id, Integer quantity){
 }
