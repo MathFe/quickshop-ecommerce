@@ -6,6 +6,8 @@ import dev.java.ecommerce.basketservice.controller.request.PaymentRequest;
 import dev.java.ecommerce.basketservice.entity.Basket;
 import dev.java.ecommerce.basketservice.entity.Product;
 import dev.java.ecommerce.basketservice.entity.Status;
+import dev.java.ecommerce.basketservice.exceptions.BusinessException;
+import dev.java.ecommerce.basketservice.exceptions.DataNotFoundException;
 import dev.java.ecommerce.basketservice.repository.BasketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,26 +24,16 @@ public class BasketService {
 
     public Basket getBasketById(String id) {
         return basketRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Basket not found"));
+                .orElseThrow(() -> new DataNotFoundException("Basket not found"));
     }
 
     public Basket createBasket(BasketRequest basketRequest) {
         basketRepository.findByClientAndStatus(basketRequest.clientId(), Status.OPEN)
                 .ifPresent(basket -> {
-                    throw new IllegalArgumentException("There is already an open basket for this client");
+                    throw new BusinessException("There is already an open basket for this client");
                 });
 
-        List<Product> products = new ArrayList<>();
-        basketRequest.products().forEach(productRequest -> {
-            PlatziProductResponse platziProductResponse = productService.getById(productRequest.id());
-
-            products.add(Product.builder()
-                    .id(platziProductResponse.id())
-                    .title(platziProductResponse.title())
-                    .price(platziProductResponse.price())
-                    .quantity(productRequest.quantity())
-                    .build());
-        });
+        List<Product> products = getProducts(basketRequest);
 
         Basket basket = Basket.builder()
                 .client(basketRequest.clientId())
@@ -53,12 +45,11 @@ public class BasketService {
         return basketRepository.save(basket);
     }
 
-    public Basket updateBasket(String basketId, BasketRequest request) {
-        Basket savedBasket = getBasketById(basketId);
-
+    private List<Product> getProducts(BasketRequest basketRequest) {
         List<Product> products = new ArrayList<>();
-        request.products().forEach(productRequest -> {
+        basketRequest.products().forEach(productRequest -> {
             PlatziProductResponse platziProductResponse = productService.getById(productRequest.id());
+
             products.add(Product.builder()
                     .id(platziProductResponse.id())
                     .title(platziProductResponse.title())
@@ -66,6 +57,13 @@ public class BasketService {
                     .quantity(productRequest.quantity())
                     .build());
         });
+        return products;
+    }
+
+    public Basket updateBasket(String basketId, BasketRequest request) {
+        Basket savedBasket = getBasketById(basketId);
+
+        List<Product> products = getProducts(request);
 
         savedBasket.setProducts(products);
 
